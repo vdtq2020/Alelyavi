@@ -1,0 +1,99 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Alelyavi | Principal</title>
+    <link rel="stylesheet" href="{% static 'comedor/css/estilos.css' %}">
+</head>
+
+<body>
+    <div class="pagina">
+        <aside>
+            <div class="marca">
+                Alelyavi
+                <small>Comedor Popular</small>
+            </div>
+
+            <div class="sector">📍 Nuestro comedor<br>Información por completar</div>
+
+            <a class="menu-lateral activo" href="{% url 'principal' %}">🏠 Principal</a>
+            <a class="menu-lateral" href="{% url 'inicio' %}">🍴 Menú del Día</a>
+            <a class="menu-lateral" href="{% url 'inventario' %}">
+                📦 Inventario de alimentos
+            </a>
+
+            <div class="turno">🟢 Turno activo<br>Servicio comunitario</div>
+        </aside>
+
+        <main>
+            <header class="barra-superior">
+                <div class="hora">Alelyavi · Comedor Popular</div>
+            </header>
+
+            <div class="contenido principal-contenido">
+                <section class="principal-portada">
+                    <div class="principal-presentacion">
+                        <p class="etiqueta-inventario principal-bienvenida">
+                            BIENVENIDOS A ALELYAVI
+                        </p>
+                        <h1>Alimentando a nuestra comunidad</h1>
+                        <p class="principal-descripcion">
+                            En nuestro comedor popular compartimos alimentos preparados
+                            con dedicación y trabajamos para brindar un espacio cercano
+                            y acogedor a todas las familias.
+                        </p>
+                        <a class="principal-enlace" href="{% url 'inicio' %}">
+                            Conoce el menú del día
+                        </a>
+                    </div>
+
+                    <img
+                        class="imagen-portada principal-imagen"
+                        src="{% static 'comedor/img/principal/principal_1.jpg' %}"
+                        alt="Comedor popular Alelyavi"
+                    >
+                </section>
+
+                <section class="principal-historia">
+                    <img
+                        class="imagen-portada principal-imagen-secundaria"
+                        src="{% static 'comedor/img/principal/principal_2.jpg' %}"
+                        alt="Comunidad del comedor Alelyavi"
+                    >
+                    <div>
+                        <p class="etiqueta-inventario">NUESTRO COMEDOR</p>
+                        <h2>Un lugar para compartir</h2>
+                        <p>
+                            Alelyavi es un comedor popular al servicio de la comunidad.
+                            Aquí podrás conocer nuestros platos y consultar los insumos
+                            que forman parte de nuestra labor diaria.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="principal-tarjetas" aria-label="Conoce nuestro inventario">
+                    <article class="principal-tarjeta principal-inventario">
+                        <img
+                            class="imagen-portada tarjeta-imagen"
+                            src="{% static 'comedor/img/principal/principal_3.jpg' %}"
+                            alt="Insumos y alimentos del comedor Alelyavi"
+                        >
+                        <div class="principal-inventario-texto">
+                            <span class="principal-icono" aria-hidden="true">📦</span>
+                            <p class="etiqueta-inventario">ORGANIZACIÓN Y CUIDADO</p>
+                            <h2>Conoce nuestro inventario</h2>
+                            <p>
+                                Consulta las categorías e insumos que forman parte
+                                del trabajo diario de nuestro comedor.
+                            </p>
+                            <a href="{% url 'inventario' %}">Ver inventario</a>
+                        </div>
+                    </article>
+                </section>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

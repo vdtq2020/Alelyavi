@@ -1,0 +1,356 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Alelyavi | Menú del día</title>
+    <link rel="stylesheet" href="{% static 'comedor/css/estilos.css' %}">
+
+</head>
+
+<body>
+    <div class="pagina">
+        <aside>
+            <div class="marca">
+                Alelyavi
+                <small>Comedor Popular</small>
+            </div>
+
+            <div class="sector">📍 Nuestro comedor<br>Información por completar</div>
+
+            <a class="menu-lateral" href="{% url 'principal' %}">🏠 Principal</a>
+            <a class="menu-lateral activo" href="#menu">🍴 Menú del Día</a>
+            <a class="menu-lateral" href="{% url 'inventario' %}">
+                📦 Inventario de alimentos
+            </a>
+
+            <div class="turno">🟢 Turno activo<br>Servicio comunitario</div>
+        </aside>
+
+        <main>
+            <header class="barra-superior barra-superior-menu">
+                <form method="get" action="{% url 'inicio' %}" class="form-busqueda">
+                    <input type="hidden" name="turno" value="{{ turno_actual }}">
+                    <input
+                        class="busqueda"
+                        id="busqueda-platos"
+                        type="search"
+                        name="q"
+                        value="{{ busqueda }}"
+                        placeholder="Buscar un plato..."
+                        aria-label="Buscar platos por nombre o descripción"
+                        aria-autocomplete="list"
+                        aria-controls="sugerencias-platos"
+                        autocomplete="off"
+                    >
+                    <button class="buscar-submit" type="submit">Buscar</button>
+                    <div class="sugerencias-busqueda" id="sugerencias-platos"
+                        role="listbox" aria-label="Platos encontrados" hidden></div>
+                </form>
+                <div class="hora">🕒 {{ horario_actual }}</div>
+            </header>
+
+            <div class="contenido" id="menu">
+                <div class="encabezado">
+                    <div>
+                        <p>● Servicio del comedor</p>
+                        <h1>Menú del día</h1>
+                    </div>
+
+                    <div class="selector" aria-label="Turno de comida">
+                        {% for clave, nombre in turnos.items %}
+                            <a
+                                href="?turno={{ clave }}&plato=0&q={{ busqueda|urlencode }}"
+                                class="{% if clave == turno_actual %}activo{% endif %}"
+                            >{{ nombre }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {% if busqueda and menu %}
+                    <p class="resultado-busqueda">
+                        {{ menu|length }} resultado{{ menu|length|pluralize }} para “{{ busqueda }}”
+                    </p>
+                {% endif %}
+
+                {% if menu %}
+                <div class="carrusel">
+                    <a class="flecha"
+                    href="?turno={{ turno_actual }}&plato={{ anterior }}&q={{ busqueda|urlencode }}"
+                    aria-label="Plato anterior">‹</a>
+
+                    <article class="plato">
+                        <img
+                            class="foto-plato"
+                            src="{% static plato.imagen %}"
+                            alt="{{ plato.nombre }}"
+                        >
+                        <h2>{{ plato.nombre }}</h2>
+                        <p class="descripcion">{{ plato.descripcion }}</p>
+                        <div class="raciones">
+                            <img
+                                class="logo-cucharon"
+                                src="{% static 'comedor/img/cucharon-logo.jpg' %}"
+                                alt="Logo del cucharón"
+                            >
+
+                            <div class="raciones-contenido">
+                                <div class="raciones-texto">
+                                    <strong>{{ plato.platos_listos }}</strong>
+                                    <span>platos listos</span>
+                                </div>
+
+                                <div
+                                    class="raciones-barra"
+                                    role="progressbar"
+                                    aria-valuenow="{{ plato.porcentaje_raciones }}"
+                                    aria-valuemin="0"
+                                    aria-valuemax="100"
+                                >
+                                    <span style="width: {{ plato.porcentaje_raciones }}%"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <a class="flecha"
+                    href="?turno={{ turno_actual }}&plato={{ siguiente }}&q={{ busqueda|urlencode }}"
+                    aria-label="Siguiente plato">›</a>
+                </div>
+
+                <div class="puntos">
+                    {% for item in menu %}
+                        <a
+                            href="?turno={{ turno_actual }}&plato={{ forloop.counter0 }}&q={{ busqueda|urlencode }}"
+                            class="{% if forloop.counter0 == indice %}actual{% endif %}"
+                            aria-label="Ver plato {{ forloop.counter }}"
+                        >●</a>
+                    {% endfor %}
+                </div>
+
+                <button class="reservar" id="reservar" type="button">
+                    ♡ &nbsp; Reservar comida
+                </button>
+
+                <p class="nota">
+                    Reserva demostrativa: puedes generar e imprimir el comprobante;
+                    todavía no se guarda en el sistema.
+                </p>
+                {% elif busqueda %}
+                    <p class="sin-resultados">
+                        No encontramos platos para “{{ busqueda }}” en el turno de
+                        {{ turno_nombre }}.
+                        Prueba con otro nombre o cambia de turno.
+                    </p>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+
+    <dialog class="modal-reserva" id="modal-reserva">
+        <button class="modal-cerrar" id="cerrar-reserva" type="button"
+            aria-label="Cerrar reserva">×</button>
+        <section id="formulario-reserva">
+            <p class="etiqueta-inventario">RESERVA DEL COMEDOR</p>
+            <h2>Arma tu pedido</h2>
+            <p class="modal-ayuda">
+                Elige como máximo un plato por turno. Puedes reservar uno, dos o los tres.
+            </p>
+
+            <label class="reserva-campo" for="nombre-reserva">
+                Tu nombre <span>(opcional)</span>
+                <input id="nombre-reserva" type="text" maxlength="80"
+                    placeholder="¿A nombre de quién?">
+            </label>
+
+            <div class="reserva-turnos">
+                {% for grupo in menus_para_reserva %}
+                    <label class="reserva-campo" for="plato-{{ grupo.clave }}">
+                        {{ grupo.nombre }}
+                        <select id="plato-{{ grupo.clave }}" data-turno="{{ grupo.nombre }}">
+                            <option value="">No reservar {{ grupo.nombre|lower }}</option>
+                            {% for opcion in grupo.platos %}
+                                <option value="{{ opcion.nombre }}">{{ opcion.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                {% endfor %}
+            </div>
+
+            <p class="reserva-error" id="reserva-error" role="alert" hidden>
+                Elige al menos un plato para generar el recibo.
+            </p>
+            <button class="btn-confirmar" id="generar-recibo" type="button">
+                Generar recibo
+            </button>
+        </section>
+
+        <section class="recibo" id="recibo-reserva" hidden>
+            <div class="recibo-cabecera">
+                <span class="recibo-simbolo" aria-hidden="true">✦</span>
+                <p>ALELYAVI · COMEDOR POPULAR</p>
+                <h2>Comprobante de reserva</h2>
+                <span id="recibo-folio"></span>
+            </div>
+            <div class="recibo-datos">
+                <p>Reservado para <strong id="recibo-nombre"></strong></p>
+                <p id="recibo-fecha"></p>
+            </div>
+            <div id="recibo-platos" class="recibo-platos"></div>
+            <p class="recibo-nota">
+                Presenta este comprobante en el comedor. Esta es una constancia
+                demostrativa; la reserva aún no se guarda en el sistema.
+            </p>
+            <div class="recibo-acciones no-imprimir">
+                <button class="btn-recibo-secundario" id="editar-reserva" type="button">
+                    Volver
+                </button>
+                <button class="btn-confirmar" id="imprimir-recibo" type="button">
+                    Imprimir recibo
+                </button>
+            </div>
+        </section>
+    </dialog>
+
+    {{ platos_para_busqueda|json_script:"datos-platos-busqueda" }}
+    <script>
+        const entradaPlatos = document.getElementById("busqueda-platos");
+        const sugerenciasPlatos = document.getElementById("sugerencias-platos");
+        const platosDisponibles = JSON.parse(
+            document.getElementById("datos-platos-busqueda").textContent
+        );
+
+        function normalizar(texto) {
+            return texto.normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toLocaleLowerCase("es");
+        }
+
+        entradaPlatos.addEventListener("input", () => {
+            const consulta = normalizar(entradaPlatos.value.trim());
+            sugerenciasPlatos.replaceChildren();
+
+            if (!consulta) {
+                sugerenciasPlatos.hidden = true;
+                entradaPlatos.setAttribute("aria-expanded", "false");
+                return;
+            }
+
+            const coincidencias = platosDisponibles
+                .filter((plato) => normalizar(
+                    `${plato.nombre} ${plato.descripcion}`
+                ).includes(consulta))
+                .slice(0, 8);
+
+            if (coincidencias.length === 0) {
+                const vacio = document.createElement("p");
+                vacio.className = "sugerencia-vacia";
+                vacio.textContent = "No se encontraron platos.";
+                sugerenciasPlatos.append(vacio);
+            } else {
+                coincidencias.forEach((plato) => {
+                    const opcion = document.createElement("a");
+                    const parametros = new URLSearchParams({
+                        turno: plato.turno,
+                        plato: "0",
+                        q: plato.nombre,
+                    });
+                    opcion.className = "sugerencia-plato";
+                    opcion.href = `?${parametros.toString()}`;
+                    opcion.setAttribute("role", "option");
+
+                    const nombre = document.createElement("strong");
+                    nombre.textContent = plato.nombre;
+                    const turno = document.createElement("span");
+                    turno.textContent = plato.turno_nombre;
+                    opcion.append(nombre, turno);
+                    sugerenciasPlatos.append(opcion);
+                });
+            }
+
+            sugerenciasPlatos.hidden = false;
+            entradaPlatos.setAttribute("aria-expanded", "true");
+        });
+
+        document.addEventListener("click", (evento) => {
+            if (!evento.target.closest(".form-busqueda")) {
+                sugerenciasPlatos.hidden = true;
+                entradaPlatos.setAttribute("aria-expanded", "false");
+            }
+        });
+
+        const modalReserva = document.getElementById("modal-reserva");
+        const formularioReserva = document.getElementById("formulario-reserva");
+        const reciboReserva = document.getElementById("recibo-reserva");
+        const errorReserva = document.getElementById("reserva-error");
+        const seleccionesReserva = Array.from(
+            document.querySelectorAll(".reserva-turnos select")
+        );
+
+        const botonReservar = document.getElementById("reservar");
+        if (botonReservar) {
+            botonReservar.addEventListener("click", () => {
+                modalReserva.showModal();
+            });
+        }
+
+        document.getElementById("cerrar-reserva").addEventListener("click", () => {
+            modalReserva.close();
+        });
+
+        document.getElementById("generar-recibo").addEventListener("click", () => {
+            const elegidos = seleccionesReserva
+                .filter((selector) => selector.value)
+                .map((selector) => ({
+                    turno: selector.dataset.turno,
+                    plato: selector.value,
+                }));
+
+            if (elegidos.length === 0) {
+                errorReserva.hidden = false;
+                return;
+            }
+
+            errorReserva.hidden = true;
+            const listaPlatos = document.getElementById("recibo-platos");
+            listaPlatos.replaceChildren();
+
+            elegidos.forEach((seleccion) => {
+                const fila = document.createElement("div");
+                fila.className = "recibo-plato";
+                const turno = document.createElement("span");
+                turno.textContent = seleccion.turno;
+                const plato = document.createElement("strong");
+                plato.textContent = seleccion.plato;
+                fila.append(turno, plato);
+                listaPlatos.append(fila);
+            });
+
+            const ahora = new Date();
+            const fecha = new Intl.DateTimeFormat("es-PE", {
+                dateStyle: "long",
+                timeStyle: "short",
+                timeZone: "America/Lima",
+            }).format(ahora);
+            document.getElementById("recibo-nombre").textContent =
+                document.getElementById("nombre-reserva").value.trim() || "Invitado/a";
+            document.getElementById("recibo-fecha").textContent = fecha;
+            document.getElementById("recibo-folio").textContent =
+                `N.° AL-${ahora.getTime().toString().slice(-8)}`;
+
+            formularioReserva.hidden = true;
+            reciboReserva.hidden = false;
+        });
+
+        document.getElementById("editar-reserva").addEventListener("click", () => {
+            reciboReserva.hidden = true;
+            formularioReserva.hidden = false;
+        });
+
+        document.getElementById("imprimir-recibo").addEventListener("click", () => {
+            window.print();
+        });
+    </script>
+</body>
+</html>

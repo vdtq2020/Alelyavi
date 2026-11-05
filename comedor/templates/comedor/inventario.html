@@ -1,0 +1,423 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Alelyavi | Inventario</title>
+    <link rel="stylesheet" href="{% static 'comedor/css/estilos.css' %}?v=3">
+</head>
+
+<body>
+    <div class="pagina">
+        <aside>
+            <div class="marca">
+                Alelyavi
+                <small>Comedor Popular</small>
+            </div>
+
+            <div class="sector">📍 Nuestro comedor<br>Información por completar</div>
+
+            <a class="menu-lateral" href="{% url 'principal' %}">🏠 Principal</a>
+            <a class="menu-lateral" href="{% url 'inicio' %}">🍴 Menú del Día</a>
+            <a class="menu-lateral activo" href="{% url 'inventario' %}">
+                📦 Inventario de alimentos
+            </a>
+
+            <div class="turno">🟢 Turno activo<br>Servicio comunitario</div>
+        </aside>
+
+        <main>
+            <header class="barra-superior">
+                <form method="get" action="{% url 'inventario' %}" class="form-busqueda">
+                    <input type="hidden" name="categoria" value="{{ categoria_actual }}">
+                    <input
+                        class="busqueda"
+                        id="busqueda-insumos"
+                        type="search"
+                        name="q"
+                        value="{{ busqueda }}"
+                        placeholder="Buscar un insumo..."
+                        aria-label="Buscar insumos por nombre"
+                        aria-autocomplete="list"
+                        aria-controls="sugerencias-insumos"
+                        aria-expanded="false"
+                        autocomplete="off"
+                    >
+                    <button class="buscar-submit" type="submit">Buscar</button>
+                    <div class="sugerencias-busqueda" id="sugerencias-insumos"
+                        role="listbox" aria-label="Insumos encontrados" hidden></div>
+                </form>
+                <div class="hora">📦 Inventario de alimentos</div>
+            </header>
+
+            <div class="contenido inventario-contenido">
+                <p class="etiqueta-inventario">ALMACÉN · COMEDOR POPULAR ALELYAVI</p>
+                <h1>Inventario de alimentos</h1>
+                <p class="nota-inventario">Vista demostrativa. Reemplaza los productos y cantidades por los datos reales.</p>
+
+                <div class="estadisticas">
+                    <div class="estadistica">
+                        <span>Total de insumos</span>
+                        <strong>{{ total_insumos }}</strong>
+                    </div>
+                    <div class="estadistica alerta">
+                        <span>Insumos por reponer</span>
+                        <strong>{{ total_criticos }}</strong>
+                    </div>
+                </div>
+
+                <nav class="filtros">
+                    {% for categoria in categorias %}
+                        <a
+                            href="?categoria={{ categoria }}"
+                            class="{% if categoria == categoria_actual %}activo{% endif %}"
+                        >{{ categoria }}</a>
+                    {% endfor %}
+                </nav>
+
+                <p class="resultado-insumos" id="resultado-insumos" aria-live="polite"></p>
+                <div class="inventario-grid" id="inventario-grid">
+                    {% for producto in productos %}
+                        <article
+                            class="producto"
+                            data-busqueda-insumo="{{ producto.nombre }} {{ producto.categoria }}"
+                            data-nombre-insumo="{{ producto.nombre }}"
+                            data-categoria-insumo="{{ producto.categoria }}"
+                        >
+                            <div class="producto-contenido">
+                                <div class="producto-cabecera">
+                                    <div>
+                                        <span class="categoria-producto">{{ producto.categoria }}</span>
+                                        <h2>{{ producto.nombre }}</h2>
+                                    </div>
+
+                                    {% if producto.critico %}
+                                        <span class="estado estado-bajo">Stock bajo</span>
+                                    {% else %}
+                                        <span class="estado estado-normal">Stock suficiente</span>
+                                    {% endif %}
+                                </div>
+
+                                <p class="lote">Lote {{ producto.lote }}</p>
+
+                                <div class="cantidad">
+                                    {{ producto.cantidad }} <span>{{ producto.unidad }}</span>
+                                </div>
+
+                                <div class="barra-stock">
+                                    <div
+                                        class="{% if producto.critico %}stock-bajo{% else %}stock-normal{% endif %}"
+                                        style="width: {{ producto.porcentaje }}%"
+                                    ></div>
+                                </div>
+
+                                <p class="detalle-stock">
+                                    Mínimo: {{ producto.minimo }} {{ producto.unidad }}
+                                </p>
+
+                                <button
+                                    class="btn-modificar"
+                                    type="button"
+                                    data-id="{{ producto.id }}"
+                                    data-nombre="{{ producto.nombre }}"
+                                    data-unidad="{{ producto.unidad }}"
+                                    data-cantidad="{{ producto.cantidad }}"
+                                >
+                                    Modificar
+                                </button>
+                            </div>
+
+                            <img
+                                class="producto-icono"
+                                src="{% static producto.imagen %}"
+                                alt="{{ producto.nombre }}"
+                            >
+                        </article>
+                    {% empty %}
+                        <p>No hay insumos registrados en esta categoría.</p>
+                    {% endfor %}
+                </div>
+                <p class="sin-resultados-insumos" id="sin-resultados-insumos" hidden>
+                    No hay insumos que coincidan con la búsqueda.
+                </p>
+
+                <section class="historial-pila">
+                    <div class="historial-cabecera">
+                        <div>
+                            <h2>Historial de movimientos</h2>
+                            <p class="historial-ayuda">Los movimientos más recientes aparecen primero.</p>
+                        </div>
+
+                        <nav class="paginador-historial" aria-label="Páginas del historial">
+                            {% if pagina_actual > 1 %}
+                                <a
+                                    class="pagina-flecha"
+                                    href="?pagina={{ pagina_anterior }}&categoria={{ categoria_actual }}&q={{ busqueda|urlencode }}"
+                                    aria-label="Página anterior"
+                                >‹</a>
+                            {% else %}
+                                <span class="pagina-flecha deshabilitada">‹</span>
+                            {% endif %}
+
+                            <span>{{ pagina_actual }} de {{ total_paginas }}</span>
+
+                            {% if pagina_actual < total_paginas %}
+                                <a
+                                    class="pagina-flecha"
+                                    href="?pagina={{ pagina_siguiente }}&categoria={{ categoria_actual }}&q={{ busqueda|urlencode }}"
+                                    aria-label="Página siguiente"
+                                >›</a>
+                            {% else %}
+                                <span class="pagina-flecha deshabilitada">›</span>
+                            {% endif %}
+                        </nav>
+                    </div>
+
+                    <div class="lista-movimientos">
+                        {% for movimiento in movimientos %}
+                            <article class="movimiento">
+                                <div class="movimiento-info">
+                                    <strong>{{ movimiento.producto }}</strong>
+                                    <span>{{ movimiento.categoria }} · Lote {{ movimiento.lote }}</span>
+                                    <small>{{ movimiento.fecha }}</small>
+                                    <small>
+                                        Stock: {{ movimiento.anterior }} →
+                                        {{ movimiento.nuevo }} {{ movimiento.unidad }}
+                                    </small>
+                                </div>
+
+                                <div class="movimiento-cambio {{ movimiento.tipo }}">
+                                    {{ movimiento.cambio }} {{ movimiento.unidad }}
+                                </div>
+                            </article>
+                        {% empty %}
+                            <p class="historial-vacio">
+                                Aún no hay movimientos registrados.
+                            </p>
+                        {% endfor %}
+                    </div>
+
+                    <form
+                        method="post"
+                        action="{% url 'inventario' %}"
+                        class="form-limpiar-historial"
+                        onsubmit="return confirm('¿Eliminar todo el historial? El stock actual se conservará.');"
+                    >
+                        {% csrf_token %}
+                        <input type="hidden" name="accion" value="limpiar_historial">
+                        <button class="btn-limpiar-historial" type="submit">
+                            🗑 Eliminar historial de inventario
+                        </button>
+                    </form>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <dialog class="modal-ajuste" id="modal-ajuste">
+        <button class="modal-cerrar" id="modal-cerrar" type="button" aria-label="Cerrar">
+            ×
+        </button>
+
+        <p class="categoria-producto">Ajuste de inventario</p>
+        <h2 id="modal-nombre">Insumo</h2>
+        <p class="modal-ayuda">
+            Escribe el ajuste o usa los botones. Cada toque cambia una unidad.
+        </p>
+
+        <form method="post" action="{% url 'inventario' %}" id="form-ajuste">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="ajustar">
+            <input type="hidden" name="producto_id" id="modal-producto-id">
+
+            <div class="ajuste-controles">
+                <button class="btn-paso restar" id="paso-restar" type="button">−</button>
+
+                <div class="campo-ajuste">
+                    <label for="delta-input">
+                        Unidades (<span id="unidad-ajuste">kg</span>)
+                    </label>
+                    <input
+                        class="delta-input"
+                        type="number"
+                        name="delta"
+                        id="delta-input"
+                        value="0"
+                        min="0"
+                        step="1"
+                        required
+                    >
+                </div>
+
+                <button class="btn-paso sumar" id="paso-sumar" type="button">+</button>
+            </div>
+
+            <button class="btn-confirmar" id="btn-confirmar" type="submit" disabled>
+                Confirmar
+            </button>
+        </form>
+    </dialog>
+
+<script>
+    const busquedaInsumos = document.getElementById("busqueda-insumos");
+    const tarjetasInsumos = Array.from(
+        document.querySelectorAll("#inventario-grid .producto")
+    );
+    const mensajeSinInsumos = document.getElementById("sin-resultados-insumos");
+    const estadoBusquedaInsumos = document.getElementById("resultado-insumos");
+    const sugerenciasInsumos = document.getElementById("sugerencias-insumos");
+
+    function normalizarInsumo(texto) {
+        return texto.normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLocaleLowerCase("es");
+    }
+
+    function filtrarInsumos() {
+        const consulta = normalizarInsumo(busquedaInsumos.value.trim());
+        let visibles = 0;
+        sugerenciasInsumos.replaceChildren();
+
+        tarjetasInsumos.forEach((tarjeta) => {
+            const coincide = normalizarInsumo(
+                tarjeta.dataset.busquedaInsumo
+            ).includes(consulta);
+            tarjeta.hidden = !coincide;
+            if (coincide) {
+                visibles += 1;
+            }
+        });
+
+        mensajeSinInsumos.hidden = visibles > 0;
+        estadoBusquedaInsumos.textContent = consulta
+            ? `${visibles} insumo${visibles === 1 ? "" : "s"} encontrado${visibles === 1 ? "" : "s"}`
+            : "";
+
+        if (!consulta) {
+            sugerenciasInsumos.hidden = true;
+            busquedaInsumos.setAttribute("aria-expanded", "false");
+            return;
+        }
+
+        tarjetasInsumos
+            .filter((tarjeta) => normalizarInsumo(
+                tarjeta.dataset.busquedaInsumo
+            ).includes(consulta))
+            .slice(0, 8)
+            .forEach((tarjeta) => {
+                const sugerencia = document.createElement("button");
+                sugerencia.className = "sugerencia-insumo";
+                sugerencia.type = "button";
+                sugerencia.setAttribute("role", "option");
+
+                const nombre = document.createElement("strong");
+                nombre.textContent = tarjeta.dataset.nombreInsumo;
+                const categoria = document.createElement("span");
+                categoria.textContent = tarjeta.dataset.categoriaInsumo;
+                sugerencia.append(nombre, categoria);
+
+                sugerencia.addEventListener("click", () => {
+                    busquedaInsumos.value = tarjeta.dataset.nombreInsumo;
+                    filtrarInsumos();
+                    sugerenciasInsumos.hidden = true;
+                    busquedaInsumos.setAttribute("aria-expanded", "false");
+                    tarjeta.scrollIntoView({ behavior: "smooth", block: "center" });
+                });
+
+                sugerenciasInsumos.append(sugerencia);
+            });
+
+        sugerenciasInsumos.hidden = false;
+        busquedaInsumos.setAttribute("aria-expanded", "true");
+    }
+
+    busquedaInsumos.addEventListener("input", filtrarInsumos);
+    filtrarInsumos();
+
+    document.addEventListener("click", (evento) => {
+        if (!evento.target.closest(".form-busqueda")) {
+            sugerenciasInsumos.hidden = true;
+            busquedaInsumos.setAttribute("aria-expanded", "false");
+        }
+    });
+
+    const modal = document.getElementById("modal-ajuste");
+    const modalNombre = document.getElementById("modal-nombre");
+    const modalProductoId = document.getElementById("modal-producto-id");
+    const deltaInput = document.getElementById("delta-input");
+    const unidadAjuste = document.getElementById("unidad-ajuste");
+    const botonConfirmar = document.getElementById("btn-confirmar");
+    const botonRestar = document.getElementById("paso-restar");
+    const botonSumar = document.getElementById("paso-sumar");
+
+    let cantidadActual = 0;
+    let unidadActual = "";
+
+    function actualizarAjuste() {
+        const texto = deltaInput.value.trim();
+        const esEntero = texto !== "" && Number.isInteger(Number(texto));
+        const delta = esEntero ? Number(texto) : 0;
+        const excedeStock = delta < -cantidadActual;
+
+        deltaInput.setCustomValidity(
+            excedeStock
+                ? "El ajuste no puede dejar el stock por debajo de cero."
+                : ""
+        );
+
+        deltaInput.classList.toggle("aumento", delta > 0);
+        deltaInput.classList.toggle("disminucion", delta < 0);
+
+        botonConfirmar.disabled =
+            !esEntero || delta === 0 || excedeStock;
+
+        botonRestar.disabled = delta <= -cantidadActual;
+    }
+
+    document.querySelectorAll(".btn-modificar").forEach((boton) => {
+        boton.addEventListener("click", () => {
+            cantidadActual = Number(boton.dataset.cantidad);
+            unidadActual = boton.dataset.unidad;
+
+            modalNombre.textContent = boton.dataset.nombre;
+            modalProductoId.value = boton.dataset.id;
+            unidadAjuste.textContent = unidadActual;
+
+            deltaInput.min = String(-cantidadActual);
+            deltaInput.value = "0";
+
+            actualizarAjuste();
+            modal.showModal();
+        });
+    });
+
+    deltaInput.addEventListener("input", actualizarAjuste);
+
+    botonSumar.addEventListener("click", () => {
+        const actual = Number(deltaInput.value) || 0;
+        deltaInput.value = String(actual + 1);
+        actualizarAjuste();
+    });
+
+    botonRestar.addEventListener("click", () => {
+        const actual = Number(deltaInput.value) || 0;
+
+        if (actual > -cantidadActual) {
+            deltaInput.value = String(actual - 1);
+            actualizarAjuste();
+        }
+    });
+
+    document.getElementById("modal-cerrar").addEventListener("click", () => {
+        modal.close();
+    });
+
+    modal.addEventListener("click", (evento) => {
+        if (evento.target === modal) {
+            modal.close();
+        }
+    });
+</script>
+</body>
+</html>
